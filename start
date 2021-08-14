@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+CONTAINER="$2-runner"
+
+[ "$( docker ps -a | grep $CONTAINER > /dev/null )" ] && docker rm --force $CONTAINER
+
+docker run -d --restart always --name $CONTAINER \
+  -e GITHUB_USER="$1" \
+  -e GITHUB_REPO="$2" \
+  -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
+  -e RUNNER_NAME="$RUNNER_NAME" \
+  wbond/pi-github-runner:latest > /dev/null

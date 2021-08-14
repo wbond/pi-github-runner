@@ -1,0 +1,52 @@
+FROM ubuntu:focal-20210723
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends locales \
+  && locale-gen en_US.UTF-8 \
+  && dpkg-reconfigure locales
+
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8 
+
+RUN apt-get install -y --no-install-recommends \
+    software-properties-common \
+  && add-apt-repository ppa:git-core/ppa \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends \
+    curl \
+    tar \
+    apt-transport-https \
+    ca-certificates \
+    sudo \
+    openssh-client \
+    python3 \
+    dumb-init \
+    git-core \
+  && c_rehash \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /tmp/*
+
+RUN mkdir -p /opt/hostedtoolcache
+
+RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1001 ubuntu
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER ubuntu
+
+WORKDIR /home/ubuntu/runner
+
+COPY bootstrap /home/ubuntu/runner/
+
+RUN sudo chmod +x /home/ubuntu/runner/bootstrap \
+  && /home/ubuntu/runner/bootstrap \
+  && rm /home/ubuntu/runner/bootstrap
+
+COPY entrypoint /home/ubuntu/runner/
+
+ENTRYPOINT ["/home/ubuntu/runner/entrypoint"]
+CMD ["/home/ubuntu/runner/bin/runsvc.sh"]

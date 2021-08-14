@@ -1,0 +1,140 @@
+#!/usr/bin/dumb-init /usr/bin/python3
+
+import json
+import os
+import signal
+import sys
+import urllib.request
+
+from typing import Callable
+from types import FrameType
+
+
+def fetch_token(args: EnvArgs) -> str:
+    domain = "https://api.github.com"
+
+    manager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    manager.add_password(None, domain, args.user, args.access_token)
+
+    handler = urllib.request.HTTPBasicAuthHandler(manager)
+
+    opener = urllib.request.build_opener(handler)
+    url = "%s/repos/%s/%s/actions/runners/registration-token" % (domain, args.user, args.repo)
+    request = urllib.request.Request(url)
+    request.add_header('Accept', 'application/vnd.github.v3+json')
+
+    response = opener.open(request)
+    charset = response.info().get_content_charset() or 'utf-8'
+    return json.loads(response.read().decode(charset))['token']
+
+
+def generate_handler(args: EnvArgs) -> Callable[[int, FrameType], None]:
+
+    def shutdown_runner(signum: int, frame: FrameType) -> None:
+        token = fetch_token(args)
+        subprocess.run(
+            './config.sh remove --token %s' % token,
+            shell=True,
+            check=True
+        )
+
+    return shutdown_runner
+
+
+class EnvArgs:
+    user: str = None
+    repo: str = None
+    access_token: str = None
+    runner_name: str = None
+
+
+def read_env() -> EnvArgs:
+    args = EnvArgs()
+    args.user = os.environ.get('GITHUB_USER')
+    args.repo = os.environ.get('GITHUB_REPO')
+    args.access_token = os.environ.get('GITHUB_ACCESS_TOKEN')
+    args.runner_name = os.environ.get('RUNNER_NAME')
+
+    missing = []
+    if not args.user:
+        missing.append('GITHUB_USER')
+    if not args.repo:
+        missing.append('GITHUB_REPO')
+    if not args.access_token:
+        missing.append('GITHUB_ACCESS_TOKEN')
+
+    if missing:
+        raise EnvironmentError(
+            'Missing env var%s: %s' %
+            (
+                '' if len(missing) == 1 else 's',
+                ', '.join(missing)
+            )
+        )
+
+    # Clear env vars so child processes don't see them
+    del os.environ['GITHUB_USER']
+    del os.environ['GITHUB_REPO']
+    del os.environ['GITHUB_ACCESS_TOKEN']
+    if 'RUNNER_NAME' in os.environ:
+        del os.environ['RUNNER_NAME']
+
+    return args
+
+
+def start_runner(args: EnvArgs) -> None:
+    print("GITHUB_USER: %s" % args.user)
+    print("GITHUB_REPO: %s" % args.repo)
+
+    concealed_token = '*' * (len(args.access_token) - 4)
+    concealed_token += args.access_token[-4:]
+    print("GITHUB_ACCESS_TOKEN: %s" % concealed_token)
+
+    token = fetch_token(args)
+
+    # Register this runner with GitHub Actinos
+    repo_url = "https://github.com/%s/%s" % (args.user, args.repo)
+    runner_name = args.runner_name
+    if not runner_name:
+        runner_name = {
+            'x86_64': 'x64',
+            'armv7l': 'arm',
+            'aarch64': 'arm64',
+        }[os.uname().machine]
+        runner_name += '-runner'
+
+    subprocess.run(
+        [
+            './config.sh',
+            '--url',
+            repo_url,
+            '--token',
+            token,
+            '--name',
+            runner_name,
+            '--work',
+            '/home/ubuntu/_work/',
+            '--unattended',
+            '--replace',
+        ],
+        shell=True,
+        check=True
+    )
+
+    # Execute Docker's CMD
+    subprocess.run(
+        sys.argv[1:],
+        shell=True,
+        check=True
+    )
+
+
+if __name__ == '__main__':
+    args = read_env()
+
+    shutdown_runner = generate_handler(args)
+    signal.signal(signal.SIGINT, shutdown_runner)
+    signal.signal(signal.SIGQUIT, shutdown_runner)
+    signal.signal(signal.SIGTERM, shutdown_runner)
+
+    start_runner(args)
