@@ -1,29 +1,36 @@
 #!/usr/bin/dumb-init /usr/bin/python3
 
+import base64
 import json
 import os
 import signal
 import sys
+import subprocess
 import urllib.request
 
 from typing import Callable
 from types import FrameType
 
 
+class EnvArgs:
+    user: str = ''
+    repo: str = ''
+    access_token: str = ''
+    runner_name: str = ''
+
+
 def fetch_token(args: EnvArgs) -> str:
-    domain = "https://api.github.com"
+    url = "https://api.github.com/repos" + \
+        "/%s/%s/actions/runners/registration-token" % (args.user, args.repo)
 
-    manager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-    manager.add_password(None, domain, args.user, args.access_token)
-
-    handler = urllib.request.HTTPBasicAuthHandler(manager)
-
-    opener = urllib.request.build_opener(handler)
-    url = "%s/repos/%s/%s/actions/runners/registration-token" % (domain, args.user, args.repo)
-    request = urllib.request.Request(url)
+    request = urllib.request.Request(url, data=b'')
     request.add_header('Accept', 'application/vnd.github.v3+json')
 
-    response = opener.open(request)
+    auth = '%s:%s' % (args.user, args.access_token)
+    auth = base64.b64encode(auth.encode('utf-8')).decode('utf-8')
+    request.add_header('Authorization', 'Basic %s' % auth)
+
+    response = urllib.request.urlopen(request)
     charset = response.info().get_content_charset() or 'utf-8'
     return json.loads(response.read().decode(charset))['token']
 
@@ -41,19 +48,12 @@ def generate_handler(args: EnvArgs) -> Callable[[int, FrameType], None]:
     return shutdown_runner
 
 
-class EnvArgs:
-    user: str = None
-    repo: str = None
-    access_token: str = None
-    runner_name: str = None
-
-
 def read_env() -> EnvArgs:
     args = EnvArgs()
-    args.user = os.environ.get('GITHUB_USER')
-    args.repo = os.environ.get('GITHUB_REPO')
-    args.access_token = os.environ.get('GITHUB_ACCESS_TOKEN')
-    args.runner_name = os.environ.get('RUNNER_NAME')
+    args.user = os.environ.get('GITHUB_USER', '')
+    args.repo = os.environ.get('GITHUB_REPO', '')
+    args.access_token = os.environ.get('GITHUB_ACCESS_TOKEN', '')
+    args.runner_name = os.environ.get('RUNNER_NAME', '')
 
     missing = []
     if not args.user:
@@ -104,7 +104,7 @@ def start_runner(args: EnvArgs) -> None:
         runner_name += '-runner'
 
     subprocess.run(
-        [
+        subprocess.list2cmdline([
             './config.sh',
             '--url',
             repo_url,
@@ -116,14 +116,14 @@ def start_runner(args: EnvArgs) -> None:
             '/home/ubuntu/_work/',
             '--unattended',
             '--replace',
-        ],
+        ]),
         shell=True,
         check=True
     )
 
     # Execute Docker's CMD
     subprocess.run(
-        sys.argv[1:],
+        subprocess.list2cmdline(sys.argv[1:]),
         shell=True,
         check=True
     )

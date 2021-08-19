@@ -58,6 +58,12 @@ Once you've customized the `Dockerfile`, build the docker image:
 ./build
 ```
 
+If you end up wanting to customize the base image and build it locally, run:
+
+```bash
+./build --full
+```
+
 ## Starting a Runner
 
 Starting a runner consists of providing the GitHub username and repo as
@@ -78,7 +84,7 @@ The base image is built for amd64, arm64 and armhf, using the following
 command:
 
 ```bash
-./build-base
+./publish-base
 ```
 
 If the command produces an error such as `multiple platforms feature is

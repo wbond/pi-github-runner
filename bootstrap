@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 ARCH="x64"
 if [[ $(uname -m) == "armv7l" ]]; then
   ARCH="arm"
@@ -10,6 +12,4 @@ fi
 curl -s -L -o actions.tar.gz "https://github.com/actions/runner/releases/download/v2.280.2/actions-runner-linux-${ARCH}-2.280.2.tar.gz"
 tar xf actions.tar.gz
 rm -f actions.tar.gz
-./bin/installdependencies.sh
-
-mkdir ~/_work
+sudo ./bin/installdependencies.sh

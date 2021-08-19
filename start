@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+set -e
+
 CONTAINER="$2-runner"
 
-[ "$( docker ps -a | grep $CONTAINER > /dev/null )" ] && docker rm --force $CONTAINER
+(( $( docker ps -q -a -f name=$CONTAINER | wc -l ) > 0 )) && docker rm --force $CONTAINER > /dev/null
 
 docker run -d --restart always --name $CONTAINER \
   -e GITHUB_USER="$1" \

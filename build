@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
+set -e
+
+if [[ $1 == "--full" ]]; then
+    docker build -t wbond/pi-github-runner-base:latest -f Dockerfile-base .
+fi
+
 docker build -t wbond/pi-github-runner:latest .

@@ -37,16 +37,16 @@ RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1001 ubuntu
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 USER ubuntu
-
+RUN mkdir /home/ubuntu/runner
+RUN mkdir /home/ubuntu/_work
 WORKDIR /home/ubuntu/runner
 
-COPY bootstrap /home/ubuntu/runner/
+COPY bootstrap entrypoint /home/ubuntu/runner/
 
 RUN sudo chmod +x /home/ubuntu/runner/bootstrap \
+  && sudo chmod +x /home/ubuntu/runner/entrypoint \
   && /home/ubuntu/runner/bootstrap \
   && rm /home/ubuntu/runner/bootstrap
-
-COPY entrypoint /home/ubuntu/runner/
 
 ENTRYPOINT ["/home/ubuntu/runner/entrypoint"]
 CMD ["/home/ubuntu/runner/bin/runsvc.sh"]
