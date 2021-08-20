@@ -33,7 +33,8 @@ RUN apt-get install -y --no-install-recommends \
 
 RUN mkdir -p /opt/hostedtoolcache
 
-RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1001 ubuntu
+RUN groupadd ubuntu
+RUN useradd -rm -d /home/ubuntu -s /bin/bash -g ubuntu -G sudo -u 1001 ubuntu
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 USER ubuntu
