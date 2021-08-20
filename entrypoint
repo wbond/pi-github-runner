@@ -103,6 +103,10 @@ def start_runner(args: EnvArgs) -> None:
         }[os.uname().machine]
         runner_name += '-runner'
 
+    # If an existing config exists, remove it first to prevent errors
+    if os.path.exists('./.runner'):
+        subprocess.run('./config.sh remove', shell=True, check=True)
+
     subprocess.run(
         subprocess.list2cmdline([
             './config.sh',
