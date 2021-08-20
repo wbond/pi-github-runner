@@ -41,7 +41,7 @@ RUN mkdir /home/ubuntu/runner
 RUN mkdir /home/ubuntu/_work
 WORKDIR /home/ubuntu/runner
 
-COPY bootstrap entrypoint /home/ubuntu/runner/
+COPY --chown=ubuntu:ubuntu bootstrap entrypoint /home/ubuntu/runner/
 
 RUN sudo chmod +x /home/ubuntu/runner/bootstrap \
   && sudo chmod +x /home/ubuntu/runner/entrypoint \
