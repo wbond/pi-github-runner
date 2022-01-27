@@ -105,7 +105,7 @@ def start_runner(args: EnvArgs) -> None:
 
     # If an existing config exists, remove it first to prevent errors
     if os.path.exists('./.runner'):
-        subprocess.run('./config.sh remove', shell=True, check=True)
+        os.unlink('./.runner')
 
     subprocess.run(
         subprocess.list2cmdline([
