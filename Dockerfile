@@ -1,4 +1,4 @@
-FROM wbond/pi-github-runner-base
+FROM rdogtech/github-runner-pi-base
 
 RUN sudo apt-get update \
   && sudo apt-get install -y --no-install-recommends \

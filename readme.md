@@ -76,16 +76,18 @@ GITHUB_ACCESS_TOKEN=examplekey ./start GITHUB_USER GITHUB_REPO
 
 ## Base Image
 
-*This section is primarily documentation about how I build
-`wbond/pi-github-runner-base`. Users will not run this, and an error will
-occur if they do, since it will try to push to my Docker Hub account.*
-
-The base image is built for amd64, arm64 and armhf, using the following
-command:
+Build the base image.
 
 ```bash
-./publish-base
+docker buildx build \
+  --push \
+  --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
+  -t rdogtech/github-runner-pi-base:latest \
+  -f Dockerfile-base \
+  .
 ```
+
+### Known issues
 
 If the command produces an error such as `multiple platforms feature is
 currently not supported for docker driver`, then create a different builder:
